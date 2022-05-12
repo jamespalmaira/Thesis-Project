@@ -1,0 +1,497 @@
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+#include <EEPROM.h>
+#include <virtuabotixRTC.h>
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+#include <DHT.h>
+#include <DHT_U.h>
+#include "dht.h"
+#define DHTPIN 9     
+#define DHTTYPE DHT11
+
+DHT dht(DHTPIN, DHTTYPE);
+
+void preset();
+int menuPreset = 1;
+void execetuteActionPreset();
+void updateMenuPreset();
+void yesAction();
+void noAction();
+
+int upButton = 10;
+int downButton = 11;
+int selectButton = 12;
+
+int x;
+
+const unsigned long eventInterval = 1000;
+unsigned long previousTime = 0;
+
+int menu = 1;
+void updateMenu();
+void executeAction();
+void action1();
+void action2();
+
+void updateMenu2();
+void executeAction2();
+void action11();
+void action22();
+
+virtuabotixRTC myRTC(6, 7, 8);  //Wiring SCLK -> 6, I/O -> 7, CE -> 8
+                                //Or CLK -> 6 , DAT -> 7, Reset -> 8
+
+//Servo and RTC                               
+int pos;
+int subDate;
+int subDate18; 
+int subDateTwo;
+
+//first turn of the day;
+const int onHourF = 0; //SET TIME TO ON RELAY (24 HOUR FORMAT)
+const int onMinsF = 0;
+//Second turn of the day
+const int onHourS = 6;
+const int onMinsS = 0;
+//Third turn of the day
+const int onHourT = 12;
+const int onMinsT = 0;
+//Fourth turn of the day
+const int onHourFth = 18;
+const int onMinsFth = 0;
+
+void setup()
+{
+  lcd.begin();
+  lcd.backlight();
+  lcd.clear();
+  lcd.print("WELCOME");
+  lcd.setCursor(0, 1);
+  lcd.print("press up/down to continue");
+  pinMode(upButton, INPUT_PULLUP);
+  pinMode(downButton, INPUT_PULLUP);
+  pinMode(selectButton, INPUT_PULLUP);
+  pinMode(LED_BUILTIN, OUTPUT);
+
+  myRTC.setDS1302Time(40, 59, 05, 6, 20, 10, 2021);
+  myRTC.updateTime();
+  
+  if (EEPROM.read(256) == 1){
+    lcd.clear();
+    lcd.print("Current Preset: Active");
+    lcd.setCursor(0, 1);
+    lcd.print("Press up/down");
+    delay(1000);
+  }
+  else{
+    while(x == 0){
+    if (!digitalRead(downButton)){
+      menuPreset++;
+      updateMenuPreset();
+      delay(100);
+      while(!digitalRead(downButton));
+    }
+    if (!digitalRead(upButton)){
+    menuPreset--;
+    updateMenuPreset();
+    delay(100);
+    while(!digitalRead(upButton));
+    }
+    if (!digitalRead(selectButton)){
+    executeActionPreset();
+    delay(100);
+    while (!digitalRead(selectButton));
+     }
+    }  
+   }
+   dht.begin();
+   lcd.clear();
+   updateMenu();
+}
+
+void loop(){
+  //eeprom = 1
+  if (EEPROM.read(256) == 1){
+    if (!digitalRead(downButton)){
+    menu++;
+    updateMenu();
+    delay(100);
+   }
+   if (!digitalRead(upButton)){
+    menu--;
+    updateMenu();
+    delay(100);
+   }
+   if (!digitalRead(selectButton)){
+    executeAction();
+    updateMenu();
+    delay(100);
+   }
+   //millis
+   unsigned long currentTime = millis();
+   if(currentTime - previousTime >= eventInterval){
+    //sensors (dht)
+      delay(50);
+      float h = dht.readHumidity();                        // Reading temperature or humidity takes about 250 milliseconds!
+      float t = dht.readTemperature();                     // Read temperature as Celsius (the default)
+      float f = dht.readTemperature(true);                 // Read temperature as Fahrenheit (isFahrenheit = true)   
+      if (isnan(h) || isnan(t) || isnan(f)) {
+        lcd.clear;
+        lcd.print("Failed to read from DHT sensor!");  // Check if any reads failed and exit early (to try again).
+        return;
+      }
+      float hif = dht.computeHeatIndex(f, h);              // Compute heat index in Fahrenheit (the default)
+      float hic = dht.computeHeatIndex(t, h, false);
+
+      if (h > 80){
+        digitalWrite(LED_BUILTIN, HIGH);
+      }
+      else{
+      digitalWrite(LED_BUILTIN, LOW);
+      }
+    //Servo & RTC
+      if(subDate <= subDate18){ // 11 <= 28
+        if(subDateTwo == myRTC.dayofmonth){
+          if((onHourF == myRTC.hours)&&(onMinsF == myRTC.minutes)){
+             for (pos = 0; pos <= 180; pos += 1) { // goes from 0 degrees to 180 degrees
+              // in steps of 1 degree
+              myservo.write(pos);              // tell servo to go to position in variable 'pos'
+              delay(10);                       // waits 15 ms for the servo to reach the position
+              }
+              lcd.print("Current Position: 180' ");                                                                 
+              delay(3000);
+            for (pos = 180; pos >= 0; pos -= 1) { // goes from 180 degrees to 0 degrees
+              myservo.write(pos);              // tell servo to go to position in variable 'pos'
+              delay(10);                       // waits 15 ms for the servo to reach the position
+              }
+              lcd.print("Current Position: 0' "); 
+              delay(3000);
+            for (pos = 0; pos <= 90; pos += 1){
+              myservo.write(pos);
+              delay(10);
+              lcd.print("Current Position: def ");
+            }
+          else if((onHourS == myRTC.hours)&&(onMinsS == myRTC.minutes)){
+            for (pos = 0; pos <= 180; pos += 1) { // goes from 0 degrees to 180 degrees
+              // in steps of 1 degree
+              myservo.write(pos);              // tell servo to go to position in variable 'pos'
+              delay(10);                       // waits 15 ms for the servo to reach the position
+            }
+              lcd.print("Current Position: 180' ");
+              delay(3000);  
+            for (pos = 180; pos >= 0; pos -= 1) { // goes from 180 degrees to 0 degrees
+              myservo.write(pos);              // tell servo to go to position in variable 'pos'
+              delay(10);                       // waits 15 ms for the servo to reach the position
+            }
+              lcd.print("Current Position: 0' ");
+              delay(3000);
+            for (pos = 0; pos <= 90; pos += 1){
+              myservo.write(pos);
+              delay(10);
+            }
+              lcd.print("Current Position: def ");
+          else if((onHourT == myRTC.hours)&&(onMinsT == myRTC.minutes)){
+            for (pos = 0; pos <= 180; pos += 1) { // goes from 0 degrees to 180 degrees
+              // in steps of 1 degree
+              myservo.write(pos);              // tell servo to go to position in variable 'pos'
+              delay(10);                       // waits 15 ms for the servo to reach the position
+            }
+              lcd.print("Current Position: 180' ");
+              delay(3000);
+            for (pos = 180; pos >= 0; pos -= 1) { // goes from 180 degrees to 0 degrees
+              myservo.write(pos);              // tell servo to go to position in variable 'pos'
+              delay(10);                       // waits 15 ms for the servo to reach the position
+            }
+              lcd.print("Current Position: 0' ");
+              delay(3000); 
+            for (pos = 0; pos <= 90; pos += 1){
+              myservo.write(pos);
+              delay(10);                                                        
+            }
+              lcd.print("Current Position: 90' ");
+          else if((onHourFth == myRTC.hours)&&(onMinsFth == myRTC.minutes)){
+            for (pos = 0; pos <= 180; pos += 1) { // goes from 0 degrees to 180 degrees
+              // in steps of 1 degree
+              myservo.write(pos);              // tell servo to go to position in variable 'pos'
+              delay(10);                       // waits 15 ms for the servo to reach the position
+            }
+              lcd.print("Current Position: 180' ");
+              delay(3000);
+            for (pos = 180; pos >= 0; pos -= 1) { // goes from 180 degrees to 0 degrees
+              myservo.write(pos);              // tell servo to go to position in variable 'pos'
+              delay(10);                       // waits 15 ms for the servo to reach the position
+            }
+              lcd.print("Current Position: 0' ");
+              delay(3000); 
+            for (pos = 0; pos <= 90; pos += 1){
+              myservo.write(pos);
+              delay(10);                                                        
+            }
+              lcd.print("Current Position: 90' ");
+          else{
+            subDateTwo = myRTC.dayofmonth; // 11 == 11
+            EEPROM.write(51, subDateTwo); //subdateTwo
+            subDate++;
+            EEPROM.write(50, subDate); //subDate 
+          }//else
+          }//Fourth turn
+          }//Third tuen
+          }//second turn
+          }//First Turn
+        } //subDateTwo == myRTC.dayofmonth
+      } //subDate <= subDate18
+    //servo and rtc
+   previousTime += eventInterval;
+   } //milis
+  } //eeprom = 1
+  //eeprom == 0
+  else {
+    lcd.clear(); 
+    updateMenu2();
+  
+    while(EEPROM.read(256) == 0){
+      if (!digitalRead(downButton)){
+        menu++;
+        updateMenu2();
+        delay(100);
+       while (!digitalRead(downButton));
+      }
+      if (!digitalRead(upButton)){
+        menu--;
+        updateMenu2();
+        delay(100);
+        while (!digitalRead(upButton));
+      }
+      if (!digitalRead(selectButton)){
+        executeAction2();
+        updateMenu2();
+        delay(100);
+        while (!digitalRead(selectButton));
+     }
+    }
+  }//eeprom = 0 
+} //end of loop
+
+void preset(){
+  x = 1;
+  EEPROM.write(256, x);
+  myRTC.updateTime();
+  subDate = myRTC.dayofmonth; // 10 = 10
+  EEPROM.write(50, subDate); //subdate
+  subDateTwo = subDate;        // 10 = 10
+  EEPROM.write(51, subDateTwo); //subdateTwo
+  subDate18 = subDate + 18;   // 28 = 10 + 18
+  EEPROM.write(52, subDate18); //subdate18
+  lcd.clear();
+  lcd.print("created a preset");
+  lcd.setCursor(0, 1);
+  lcd.print("Timer has started";
+  delay(2000);
+}
+
+void updateMenuPreset(){
+ switch (menuPreset) {
+  case 0:
+      menuPreset = 1;
+      break;
+    case 1:
+      lcd.clear();
+      lcd.print("Make a new value? ");
+      lcd.setCursor(0, 1);
+      lcd.print(">Yes");
+      lcd.print(" No");
+      break;
+    case 2:
+      lcd.clear();
+      lcd.print("Make a new value? ");
+      lcd.setCursor(0, 1);
+      lcd.print(" Yes");
+      lcd.print(">No");
+      break;
+    case 3:
+      menuPreset = 2;
+      break;
+  }
+}
+
+void executeActionPreset(){
+  switch (menuPreset) {
+    case 1:
+      yesAction();
+      break;
+    case 2:
+      noAction();
+      break;
+  }
+}
+
+void yesAction(){
+  lcd.clear();
+  lcd.print("creating preset");
+  delay(100);
+  preset();
+  delay(100);
+  lcd.clear();
+  lcd.print("press any button to continue");
+  delay(500);
+}
+
+void noAction(){
+  lcd.clear();
+  lcd.print("No preset");
+  x = 1;
+  delay(1000);
+  lcd.clear();
+  lcd.print("Proceed to main menu");
+  lcd.setCursor(0, 1);
+  lcd.print("press any button to continue");
+  delay(500);
+}
+
+void updateMenu() {
+  switch (menu) {
+    case 0:
+      menu = 1;
+      break;
+    case 1:
+      lcd.clear();
+      lcd.print("Day 01");
+      lcd.setCursor(0, 1);
+      lcd.print(">show ");
+      lcd.print(" rst");
+      break;
+    case 2:
+      lcd.clear();
+      lcd.print("Day 01");
+      lcd.setCursor(0, 1);
+      lcd.print(" show");
+      lcd.print(" >rst");
+      break;
+    case 3:
+      menu = 2;
+      break;
+  }
+}
+
+void executeAction() {
+  switch (menu) {
+    case 1:
+      action1();
+      break;
+    case 2:
+      action2();
+      break;
+  }
+}
+
+void action1() {
+ delay(50);
+ float h = dht.readHumidity();                        
+ float t = dht.readTemperature();                     
+ float f = dht.readTemperature(true);                    
+ if (isnan(h) || isnan(t) || isnan(f)) {
+  lcd.clear();
+  lcd.print("Failed to read from DHT sensor!");  
+  return;
+  }
+  
+ float hif = dht.computeHeatIndex(f, h);              
+ float hic = dht.computeHeatIndex(t, h, false); 
+ 
+ lcd.clear();
+ lcd.print("Hum: ");
+ lcd.print(h);
+ lcd.setCursor(0, 1);
+ lcd.print("Temp: ");
+ lcd.print(t);
+ delay(1500);
+}
+
+void action2() {
+  lcd.clear();
+  lcd.print("Are you sure?");
+  x = 0;
+  EEPROM.write(256, x);
+  subDate = 0;
+  subDate18 = 0;
+  subDateTwo = 0;
+  delay(500);
+  lcd.clear();
+  lcd.print("complete");
+  delay(1500);
+}
+
+void updateMenu2() {
+   switch (menu) {
+    case 0:
+      menu = 1;
+      break;
+    case 1:
+      lcd.clear();
+      lcd.print("No preset");
+      lcd.setCursor(0, 1);
+      lcd.print(">show ");
+      lcd.print(" make");
+      break;
+    case 2:
+      lcd.clear();
+      lcd.print("No preset");
+      lcd.setCursor(0, 1);
+      lcd.print(" show");
+      lcd.print(" >make");
+      break;
+    case 3:
+      menu = 2;
+      break;
+  }
+}
+
+void executeAction2() {
+  switch (menu) {
+    case 1:
+      action11();
+      break;
+    case 2:
+      action22();
+      break;
+  }
+}
+
+void action11(){
+   delay(50);
+ float h = dht.readHumidity();                        
+ float t = dht.readTemperature();                     
+ float f = dht.readTemperature(true);                    
+ if (isnan(h) || isnan(t) || isnan(f)) {
+  lcd.clear();
+  lcd.print("Failed to read from DHT sensor!");  
+  return;
+  }
+  
+ float hif = dht.computeHeatIndex(f, h);              
+ float hic = dht.computeHeatIndex(t, h, false); 
+ 
+ lcd.clear();
+ lcd.print("Hum: ");
+ lcd.print(h);
+ lcd.setCursor(0, 1);
+ lcd.print("Temp: ");
+ lcd.print(t);
+ delay(1500);
+}
+
+void action22(){
+  lcd.clear();
+  lcd.print("creating preset");
+  delay(500);
+  preset();
+  x = 1;
+  EEPROM.write(256, x);
+  delay(1000);
+  lcd.clear();
+  lcd.print("Proceed to main menu");
+  lcd.setCursor(0, 1);
+  lcd.print("press any button to continue");
+  delay(500);
+}
