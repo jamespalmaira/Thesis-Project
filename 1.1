@@ -1,0 +1,166 @@
+//RTC library
+#include <virtuabotixRTC.h> //Library used
+//Wiring SCLK -> 6, I/O -> 7, CE -> 8
+//Or CLK -> 6 , DAT -> 7, Reset -> 8
+virtuabotixRTC myRTC(6, 5, 7); //If you change the wiring change the pins here also
+
+//LCD_I2C Library
+#include <Wire.h>                  // Include Wire library (required for I2C devices)
+#include <LiquidCrystal_I2C.h>     // Include LiquidCrystal_I2C library 
+LiquidCrystal_I2C lcd(0x27, 16, 2);  // Configure LiquidCrystal_I2C library with 0x27 address, 16 columns and 2 rows
+
+//Servo Library
+#include <Servo.h>
+Servo myservo;
+int servopos=0;
+
+//DHT11 Library
+#include <DHT.h>
+#include <DHT_U.h>
+#include "dht.h"
+#define DHTPIN 2 
+#define DHTTYPE DHT11 // DHT 11
+// Connect pin 1 (on the left) of the sensor to +5V
+// NOTE: If using a board with 3.3V logic like an Arduino Due connect pin 1
+// to 3.3V instead of 5V!
+// Connect pin 2 of the sensor to whatever your DHTPIN is
+// Connect pin 4 (on the right) of the sensor to GROUND
+// Connect a 10K resistor from pin 2 (data) to pin 1 (power) of the sensor
+// Initialize DHT sensor.
+// Note that older versions of this library took an optional third parameter to
+// tweak the timings for faster processors. This parameter is no longer needed
+// as the current DHT reading algorithm adjusts itself to work on faster procs.
+DHT dht(DHTPIN, DHTTYPE);
+
+int RelayPin2 = 3;
+int RelayPin1 = 4;
+int RelayPin3 = 8;
+
+void setup() {
+   Serial.begin(9600);
+   dht.begin();
+   pinMode(RelayPin1, OUTPUT); //relay for fan 
+   pinMode(RelayPin2, OUTPUT); //relay for bulb
+   pinMode(RelayPin3, OUTPUT); //relay for sync motor
+   myservo.attach(9);
+
+// Comments for RTC time
+// Set the current date, and time in the following format:
+ // seconds, minutes, hours, day of the week, day of the month, month, year
+ //myRTC.setDS1302Time(0, 51, 1, 5, 15, 10, 2021); //Here you write your actual time/date as shown above 
+ //but remember to "comment/remove" this function once you're done
+ //The setup is done only one time and the module will continue counting it automatically
+
+  //LCD_IC2 Setup
+  lcd.init();                        // Initialize I2C LCD module
+  lcd.backlight();                   // Turn backlight ON
+}
+
+
+void loop() {
+   digitalWrite(RelayPin1, LOW);
+   delay(2000); // Wait a few seconds between measurements
+   float h = dht.readHumidity();
+   // Reading temperature or humidity takes about 250 milliseconds!
+   float t = dht.readTemperature();
+   // Read temperature as Celsius (the default)
+   float f = dht.readTemperature(true);
+   // Read temperature as Fahrenheit (isFahrenheit = true)
+   // Check if any reads failed and exit early (to try again).
+   if (isnan(h) || isnan(t) || isnan(f)) {
+      Serial.println("Failed to read from DHT sensor!");
+      lcd.setCursor(1,0);
+      lcd.autoscroll();
+      lcd.print("Failed to read from DHT sensor!");
+      return;
+   }
+   
+   // Compute heat index in Fahrenheit (the default)
+   float hif = dht.computeHeatIndex(f, h);
+   // Compute heat index in Celsius (isFahreheit = false)
+   float hic = dht.computeHeatIndex(t, h, false);
+   Serial.print ("Humidity: ");
+   lcd.setCursor(0,0);
+   lcd.print("Humidity:");
+   Serial.print (h);
+   lcd.print(h);
+   Serial.println (" %\t");
+   lcd.print("%");
+   Serial.print ("Temperature: ");
+   lcd.setCursor(0,1);
+   lcd.print("Temp:");
+   Serial.print(t);
+   Serial.print (" *C ");
+   Serial.print (f);
+   lcd.print(f);
+   Serial.println (" *F\t");
+   lcd.print("F");
+   Serial.print ("Heat index: ");
+   Serial.print (hic);
+   Serial.print (" *C ");
+   Serial.print (hif);
+   Serial.println (" *F");
+
+  if(Serial.available()){
+    delay(150);
+    lcd.clear();
+    while(Serial.available() > 0 ){
+      lcd.write(Serial.read());
+      }
+  }
+   
+   //Relay channel for Bulb
+   if(f>101){
+  digitalWrite(RelayPin2, HIGH);
+  Serial.println ("Temperature to hot. Bulb will Turn off");
+  delay(1000);
+   }
+  else if(f<=100.9){
+  digitalWrite(RelayPin2, LOW);
+  delay(1000);
+  }
+ // This allows for the update of variables for time or accessing the individual elements.
+ myRTC.updateTime();
+ 
+// Start printing elements as individuals
+/* Serial.print("Current Date / Time: ");
+ Serial.print(myRTC.dayofmonth); 
+ Serial.print("/");
+ Serial.print(myRTC.month);
+ Serial.print("/");
+ Serial.print(myRTC.year);
+ Serial.print(" ");
+ Serial.print(myRTC.hours);
+ Serial.print(":");
+ Serial.print(myRTC.minutes);
+ Serial.print(":");
+ Serial.println(myRTC.seconds);
+ 
+// Delay so the program doesn't print non-stop
+ delay(1000);
+
+int currHr=myRTC.minutes;
+int firstTurn=currHr+1;
+int secTurn=firstTurn+1;*/
+
+//sync motor
+for(int x=1; x<9; x++){
+  Serial.println(x);
+  if(x<=2){
+  digitalWrite(RelayPin3, HIGH);
+  delay(4000);
+}
+else if(x>=5&&x<=6){
+  digitalWrite(RelayPin3, HIGH);
+  delay(4000);
+}
+else if(x>=3&&x<=4){
+  digitalWrite(RelayPin3, LOW);
+  delay(2000);
+  }
+else if(x>=7&&x<=8){
+  digitalWrite(RelayPin3, LOW);
+  delay(2000);
+}
+}
+}
