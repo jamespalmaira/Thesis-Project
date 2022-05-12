@@ -1,0 +1,28 @@
+#include <virtuabotixRTC.h>
+//Wiring SCLK -> 6, I/O -> 7, CE -> 8
+virtuabotixRTC myRTC(5, 4, 2);
+
+
+void setup() {
+  Serial.begin(9600);
+                  //Secs, Min, Hrs
+  myRTC.setDS1302Time(50, 59, 23, 26, 03, 10, 2021);
+}
+
+void loop() {
+  myRTC.updateTime();
+  
+ Serial.print(myRTC.dayofmonth); 
+ Serial.print("/");
+ Serial.print(myRTC.month);
+ Serial.print("/");
+ Serial.print(myRTC.year);
+ Serial.print(" ");
+ Serial.print(myRTC.hours);
+ Serial.print(":");
+ Serial.print(myRTC.minutes);
+ Serial.print(":");
+ Serial.println(myRTC.seconds);
+
+ delay(500);
+}
