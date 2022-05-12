@@ -1,0 +1,43 @@
+#include <DHT.h>
+#include <DHT_U.h>
+#include "dht.h"
+#define DHTPIN 2      //PIN
+#define DHTTYPE DHT11
+
+DHT dht(DHTPIN, DHTTYPE);
+
+void setup() {
+ Serial.begin(9600);
+ dht.begin();
+
+ 
+}
+
+void loop() {
+ delay(50);
+ float h = dht.readHumidity();                        // Reading temperature or humidity takes about 250 milliseconds!
+ float t = dht.readTemperature();                     // Read temperature as Celsius (the default)
+ float f = dht.readTemperature(true);                 // Read temperature as Fahrenheit (isFahrenheit = true)   
+ if (isnan(h) || isnan(t) || isnan(f)) {
+  Serial.println("Failed to read from DHT sensor!");  // Check if any reads failed and exit early (to try again).
+  return;
+  }
+  
+ float hif = dht.computeHeatIndex(f, h);              // Compute heat index in Fahrenheit (the default)
+ float hic = dht.computeHeatIndex(t, h, false);       // Compute heat index in Celsius (isFahreheit = false)
+   Serial.print (" ||");
+   Serial.print (" Humidity: ");
+   Serial.print (h);
+   Serial.print (" | ");
+   Serial.print ("Temperature: ");
+   Serial.print (t);
+   Serial.print (" *C ");
+   Serial.print (f);
+   Serial.print (" *F ");
+   Serial.print ("|");
+   Serial.print (" Heat index: ");
+   Serial.print (hic);
+   Serial.print (" *C ");
+   Serial.print (hif);
+   Serial.println (" *F");
+}
