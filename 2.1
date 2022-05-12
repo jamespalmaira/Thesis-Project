@@ -1,0 +1,138 @@
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+#include <EEPROM.h>
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+void preset();
+int menuPreset = 1;
+void execetuteActionPreset();
+void updateMenuPreset();
+void yesAction();
+void noAction();
+
+int upButton = 10;
+int downButton = 11;
+int selectButton = 12;
+
+int x;
+int fhours;
+
+void setup()
+{
+  lcd.begin();
+  lcd.backlight();
+  lcd.clear();
+  lcd.print("WELCOME");
+  pinMode(upButton, INPUT_PULLUP);
+  pinMode(downButton, INPUT_PULLUP);
+  pinMode(selectButton, INPUT_PULLUP);
+  
+  if (EEPROM.read(256) == 1){
+    lcd.clear();
+    lcd.print("Current Preset: ");
+    lcd.setCursor(0, 1);
+    lcd.print(EEPROM.read(256));
+    delay(2000);
+  }
+  else{
+    while(x == 0){
+    if (!digitalRead(downButton)){
+      menuPreset++;
+      updateMenuPreset();
+      delay(100);
+      while(!digitalRead(downButton));
+    }
+    if (!digitalRead(upButton)){
+    menuPreset--;
+    updateMenuPreset();
+    delay(100);
+    while(!digitalRead(upButton));
+    }
+    if (!digitalRead(selectButton)){
+    executeActionPreset();
+    delay(100);
+    while (!digitalRead(selectButton));
+     }
+    }  
+   }
+   
+}
+
+void loop()
+{
+ lcd.clear();
+ lcd.print("Success");
+ while (digitalRead(selectButton));
+ x = 0;
+ EEPROM.write(256, x);
+}
+
+void preset(){
+  fhours = 10;
+  x = 1;
+  EEPROM.write(256, x);
+  lcd.clear();
+  lcd.print("created a preset");
+  lcd.setCursor(0, 1);
+  lcd.print(EEPROM.read(256));
+  delay(2000);
+}
+
+void updateMenuPreset(){
+ switch (menuPreset) {
+  case 0:
+      menuPreset = 1;
+      break;
+    case 1:
+      lcd.clear();
+      lcd.print("Make a new value? ");
+      lcd.setCursor(0, 1);
+      lcd.print(">Yes");
+      lcd.print(" No");
+      break;
+    case 2:
+      lcd.clear();
+      lcd.print("Make a new value? ");
+      lcd.setCursor(0, 1);
+      lcd.print(" Yes");
+      lcd.print(">No");
+      break;
+    case 3:
+      menuPreset = 2;
+      break;
+  }
+}
+
+void executeActionPreset(){
+  switch (menuPreset) {
+    case 1:
+      yesAction();
+      break;
+    case 2:
+      noAction();
+      break;
+  }
+}
+
+void yesAction(){
+  lcd.clear();
+  lcd.print("creating preset");
+  delay(500);
+  preset();
+  x = 1;
+  EEPROM.write(256, x);
+  delay(1000);
+  lcd.clear();
+  lcd.print("Proceeding to main menu");
+  delay(500);
+}
+
+void noAction(){
+  lcd.clear();
+  lcd.print("No preset");
+  x = 1;
+  delay(1000);
+  lcd.clear();
+  lcd.print("Proceeding to main menu");
+  delay(500);
+}
