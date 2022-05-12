@@ -1,0 +1,84 @@
+#include <virtualbotixRTC.h>
+#include <Servo.h>
+Servo myservo;
+
+#include <DHT.h>
+#include <DHT_U.h>
+#include "dht.h"
+#define DHTPIN 2 
+#define DHTTYPE DHT11
+DHT dht(DHTPIN, DHTTYPE);
+int RelayPin2 = 3;
+int RelayPin1 = 4;
+
+virtualbotixRTC myRTC(6, 7, 8);
+
+int pos;
+int subDate;
+int subDate18;
+int subDateTwo;
+
+const int onHourF = 0;
+const int onMInsF = 0;
+
+const int onHourS = 0;
+const int onMinST = 0;
+
+const int onHourFth = 0;
+const int onMinsFth = 0;
+
+void setup(){
+	Serial.begin(9600);
+
+	myservo.attach(9);
+	myRTC.setDS1302Time(40, 59, 05, 6, 20, 10, 2021);
+
+	myRTC.updateTime();
+	subDate = myRTC.dayofmonth;
+	subDate18 = subDate + 18;
+	subDateTwo = subDate;
+
+	dht.begin();
+	pinMode(RelayPin1, OUTPUT);
+	pinMode(RelayPin2, OUTPUT);
+}
+
+void printTimeandTemp(){
+	Serial.print("Date / Time: ");
+	Serial.print(myRTC.dayofmonth);
+	Serial.print("/");
+	Serial.print(myRTC.month);
+	Serial.print(myRTC.year);
+	Serial.print(myRTC.hours);
+	Serial.print(myRTC.minutes);
+	Serial.print(myRTC.seconds);
+
+		delay(2000);
+		float h = dht.readHumidity(); //teaks 250ms
+		float t = dht.readTemperature();
+		float f = dht.readTemperature(true);
+		if (isnan(h) || isnan(t) || isnan(f)) {
+			Serial.println("Failed to read");
+			return;
+	}
+}
+
+void RTC(){
+  if (subDate <= subDate18) { 10 = 18
+    if (subdateTwo == myRTC.dayofmonth) {
+      if (onHourF == myRTC.hours) && (onMinsF == myRTC.minutes)){ 
+        Serial.print("Current Position: 180' ");
+        delay(3000);
+      }
+      else((onHourS== myRTC.hours) && (onMinsS == myRTC.minutes)){
+        Serial.print("Current Position: 180' ");
+        delay(3000);
+      }
+    }
+    else{
+      subDateTwo = myRTC.dayofmonth;
+      subDate++;
+    }
+  }
+
+}
