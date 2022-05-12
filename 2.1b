@@ -1,0 +1,310 @@
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+#include <EEPROM.h>
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+#include <Servo.h>
+Servo myservo;
+
+#include <DHT.h>
+#include <DHT_U.h>
+#include "dht.h"
+#define DHTPIN 1 //DHT
+#define DHTTYPE DHT11
+
+DHT dht(DHTPIN, DHTTYPE);
+int RelayPin2 = 3; //bulb
+int RelayPin1 = 6; //fan
+int RelayPin3 = 8; //motor
+
+#include <virtuabotixRTC.h>
+//Wiring SCLK -> 6, I/O -> 7, CE -> 8
+//Or CLK -> 6 , DAT -> 7, Reset -> 8
+virtuabotixRTC myRTC(5, 4, 2);
+
+void dummyPreset();
+int menuPreset = 1;
+void execetuteActionPreset();
+void updateMenuPreset();
+void yesAction();
+void noAction();
+void realPreset();
+
+int upButton = 10;
+int downButton = 11;
+int selectButton = 12;
+
+int x;
+int fhours;
+
+int presetDay = 0;
+
+int pos;
+int subDate;
+int subDate18;
+int subDateTwo;
+
+//first turn of the day;
+const int onHourF = 0; //SET TIME TO ON RELAY (24 HOUR FORMAT)
+const int onMinsF = 0;
+//Second turn of the day
+const int onHourS = 6;
+const int onMinsS = 0;
+//Third turn of the day
+const int onHourT = 12;
+const int onMinsT = 0;
+//Fourth turn of the day
+const int onHourFth = 18;
+const int onMinsFth = 0;
+
+void setup()
+{
+  
+  Serial.begin(9600);
+  lcd.begin();
+  lcd.backlight();
+  lcd.clear();
+  lcd.print("WELCOME");
+  lcd.setCursor(0, 1);
+  lcd.print("Press up or down");
+  pinMode(upButton, INPUT_PULLUP);
+  pinMode(downButton, INPUT_PULLUP);
+  pinMode(selectButton, INPUT_PULLUP); 
+
+  dht.begin();
+  pinMode(RelayPin1, OUTPUT);
+  pinMode(RelayPin2, OUTPUT);
+  pinMode(RelayPin3, OUTPUT);
+  
+  if (EEPROM.read(256) == 1){
+    lcd.clear();
+    lcd.print("You have a Preset: ");
+    lcd.setCursor(0, 1);
+    lcd.print(EEPROM.read(256));
+    delay(2000);
+  }
+  else{
+    while(x == 0){
+    if (!digitalRead(downButton)){
+      menuPreset++;
+      updateMenuPreset();
+      delay(100);
+      while(!digitalRead(downButton));
+    }
+    if (!digitalRead(upButton)){
+    menuPreset--;
+    updateMenuPreset();
+    delay(100);
+    while(!digitalRead(upButton));
+    }
+    if (!digitalRead(selectButton)){
+    executeActionPreset();
+    delay(100);
+    while (!digitalRead(selectButton));
+     }
+    }  
+   }
+   
+   myRTC.setDS1302Time(40, 59, 23, 5, 15, 10, 2021);
+   myRTC.updateTime();
+   subDate = myRTC.dayofmonth; // 10 = 10
+   subDate18 = subDate + 18;   // 28 = 10 + 18
+   subDateTwo = subDate; 
+}
+
+void loop()
+{
+ if(EEPROM.read(256) == 1){
+  while(digitalRead(selectButton)){
+    myRTC.updateTime();
+    lcd.clear();
+    lcd.print("Starting..");
+    delay(1000);
+  if(subDate <= subDate18){ 
+   if(subDateTwo == myRTC.dayofmonth){ 
+    if((onHourF == myRTC.hours)&&(onMinsF == myRTC.minutes)){ //00:00
+       digitalWrite(RelayPin1, HIGH);
+       Serial.print(myRTC.hours);
+       Serial.print(":");
+       Serial.print(myRTC.minutes);
+       Serial.print(":");
+       Serial.println(myRTC.seconds);
+       delay(1000);
+       myRTC.updateTime();
+    }
+    else if((onHourS == myRTC.hours)&&(onMinsS == myRTC.minutes)){
+          for(int pos = 1; pos<9; pos++){
+          Serial.println(pos);
+          if(pos <= 2){
+          digitalWrite(RelayPin3, HIGH);
+          delay(4000);
+          }
+          else if(pos >= 5 && pos <= 6){
+          digitalWrite(RelayPin3, HIGH);
+          delay(4000);
+          }
+          else if(pos >= 3 && pos <= 4){
+          digitalWrite(RelayPin3, LOW);
+          delay(2000);
+          }
+          else if(pos >= 7 && pos <= 8){
+          digitalWrite(RelayPin3, LOW);
+          delay(2000);
+            }
+          }                                                       
+    }
+    else if((onHourT == myRTC.hours)&&(onMinsT == myRTC.minutes)){
+        for(int pos = 1; pos<9; pos++){
+         Serial.println(pos);
+         if(pos <= 2){
+         digitalWrite(RelayPin3, HIGH);
+         delay(4000);
+         }
+         else if(pos >= 5 && pos <= 6){
+         digitalWrite(RelayPin3, HIGH);
+         delay(4000);
+         }
+         else if(pos >= 3 && pos <= 4){
+         digitalWrite(RelayPin3, LOW);
+         delay(2000);
+         }
+         else if(pos >= 7 && pos <= 8){
+         digitalWrite(RelayPin3, LOW);
+         delay(2000);
+           }
+         }                                                        
+    }
+    else if((onHourFth == myRTC.hours)&&(onMinsFth == myRTC.minutes)){
+        for(int pos = 1; pos<9; pos++){
+        Serial.println(pos);
+        if(pos <= 2){
+        digitalWrite(RelayPin3, HIGH);
+        delay(4000);
+        }
+        else if(pos >= 5 && pos <= 6){
+        digitalWrite(RelayPin3, HIGH);
+        delay(4000);
+        }
+        else if(pos >= 3 && pos <= 4){
+        digitalWrite(RelayPin3, LOW);
+        delay(2000);
+        }
+        else if(pos >= 7 && pos <= 8){
+        digitalWrite(RelayPin3, LOW);
+        delay(2000);
+          }
+        }                                                        
+    }
+    else{
+      Serial.print("Default");
+      Serial.print(myRTC.hours);
+      Serial.print(":");
+      Serial.print(myRTC.minutes);
+      Serial.print(":");
+      Serial.println(myRTC.seconds);
+      delay(1000);
+    }
+  }
+  else{
+    subDateTwo = myRTC.dayofmonth; // 11 == 11
+    subDate++;
+  }
+ }
+  }
+ }
+    myRTC.updateTime();
+    lcd.clear();
+    lcd.print("No preset");
+    Serial.print("/");
+    Serial.print(" ");
+    Serial.print("Current Date / Time: ");
+    Serial.print(myRTC.dayofmonth); 
+    Serial.print("/");
+    Serial.print(myRTC.month);
+    Serial.print("/");
+    Serial.print(myRTC.year);
+    Serial.print(" ");
+    Serial.print(myRTC.hours);
+    Serial.print(":");
+    Serial.print(myRTC.minutes);
+    Serial.print(":");
+    Serial.println(myRTC.seconds);
+ 
+// Delay so the program doesn't print non-stop
+    delay(1000);
+    while (digitalRead(selectButton));
+    x = 0;
+    EEPROM.write(256, x);
+    
+  
+}
+
+void dummyPreset(){
+  fhours = 10;
+  x = 1;
+  EEPROM.write(256, x);
+  lcd.clear();
+  lcd.print("created a preset");
+  lcd.setCursor(0, 1);
+  lcd.print(EEPROM.read(256));
+  delay(2000);
+}
+
+void updateMenuPreset(){
+ switch (menuPreset) {
+  case 0:
+      menuPreset = 1;
+      break;
+    case 1:
+      lcd.clear();
+      lcd.print("Make a new value? ");
+      lcd.setCursor(0, 1);
+      lcd.print(">Yes");
+      lcd.print(" No");
+      break;
+    case 2:
+      lcd.clear();
+      lcd.print("Make a new value? ");
+      lcd.setCursor(0, 1);
+      lcd.print(" Yes");
+      lcd.print(">No");
+      break;
+    case 3:
+      menuPreset = 2;
+      break;
+  }
+}
+
+void executeActionPreset(){
+  switch (menuPreset) {
+    case 1:
+      yesAction();
+      break;
+    case 2:
+      noAction();
+      break;
+  }
+}
+
+void yesAction(){
+  lcd.clear();
+  lcd.print("creating preset");
+  delay(500);
+  dummyPreset();
+  x = 1;
+  EEPROM.write(256, x);
+  delay(1000);
+  lcd.clear();
+  lcd.print("Proceeding to main menu");
+  delay(500);
+}
+
+void noAction(){
+  lcd.clear();
+  lcd.print("No preset");
+  x = 1;
+  delay(1000);
+  lcd.clear();
+  lcd.print("Proceeding to main menu");
+  delay(500);
+}
