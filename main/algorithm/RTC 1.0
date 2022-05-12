@@ -1,0 +1,14 @@
+myRTC.updateTime();
+subDate = myRTC.dayofmonth; // 32 = 32
+subDate18 = subDate + 18;   // 50 = 32 + 18
+subDateTwo = subDate;        // 32 = 32
+
+subDate <= subDate18 //33 < 50
+subDateTwo == rtcd // 1 == 1
+proceed
+
+variables that needs to be save to EEPROM:
+
+- subDate
+- subDate18
+- subDateTwo
